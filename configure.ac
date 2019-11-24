@@ -66,7 +66,6 @@ AS_IF([test "x$PKG_CONFIG" = "xno"],[
 
 PKG_CHECK_MODULES([ARCHIVE], [libarchive], [], AC_MSG_ERROR([Requires libarchive. Libarchive must be built with zlib support.]))
 PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 2.8], [], AC_MSG_ERROR([Requires libconfuse v2.8 or later]))
-PKG_CHECK_MODULES([SODIUM], [libsodium], [], AC_MSG_ERROR([Requires libsodium]))
 
 AC_ARG_WITH([pthreads],
             [AS_HELP_STRING([--with-pthreads],

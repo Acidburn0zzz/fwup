@@ -15,7 +15,7 @@
  */
 
 #include "fwup_genkeys.h"
-#include <sodium.h>
+#include "monocypher.h"
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -59,6 +59,12 @@ cleanup:
     return rc;
 }
 
+#include <sys/random.h>
+static int get_random(uint8_t *buf, size_t len)
+{
+   return getrandom(buf, len, 0);
+}
+
 /**
  * @brief Generate a public/private signing key pair
  * @param output_prefix if non-NULL, this is the prefix to the output file
@@ -68,11 +74,13 @@ int fwup_genkeys(const char *output_prefix)
 {
     char pubkey_path[PATH_MAX];
     char privkey_path[PATH_MAX];
-    unsigned char pk[crypto_sign_PUBLICKEYBYTES];
-    unsigned char sk[crypto_sign_SECRETKEYBYTES];
+    uint8_t sk[FWUP_PRIVATE_KEY_LEN + FWUP_PUBLIC_KEY_LEN];
+    uint8_t *pk = &sk[FWUP_PRIVATE_KEY_LEN];
 
-    if (crypto_sign_keypair(pk, sk) < 0)
-        ERR_RETURN("Error creating key pair");
+    if (get_random(sk, FWUP_PRIVATE_KEY_LEN) < 0)
+        ERR_RETURN("Could not get enough random bytes");
+
+    crypto_sign_public_key(pk, sk);
 
     if (!output_prefix)
         output_prefix = "fwup-key";
@@ -80,8 +88,8 @@ int fwup_genkeys(const char *output_prefix)
     sprintf(pubkey_path, "%s.pub", output_prefix);
     sprintf(privkey_path, "%s.priv", output_prefix);
 
-    OK_OR_RETURN(save_key(pubkey_path, pk, sizeof(pk)));
-    OK_OR_RETURN(save_key(privkey_path, sk, sizeof(sk)));
+    OK_OR_RETURN(save_key(pubkey_path, pk,  FWUP_PUBLIC_KEY_LEN));
+    OK_OR_RETURN(save_key(privkey_path, sk, FWUP_PRIVATE_KEY_LEN + FWUP_PUBLIC_KEY_LEN));
 
     char message[512];
     char *base_pubkey_path = basename(pubkey_path);

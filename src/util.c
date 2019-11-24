@@ -20,7 +20,7 @@
 
 #include <errno.h>
 #include <libgen.h>
-#include <sodium.h>
+#include "monocypher.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -677,17 +677,17 @@ int string_to_uuid_me(const char *uuid_str, uint8_t uuid[UUID_LENGTH])
  */
 void calculate_fwup_uuid(const char *data, off_t data_size, char *uuid)
 {
-    crypto_generichash_state hash_state;
-    crypto_generichash_init(&hash_state, NULL, 0, crypto_generichash_BYTES);
+    crypto_blake2b_ctx hash_state;
+    crypto_blake2b_general_init(&hash_state, FWUP_BLAKE2b_256_LEN, NULL, 0);
 
     // fwup's UUID: 2053dffb-d51e-4310-b93b-956da89f9f34
     unsigned char fwup_uuid[UUID_LENGTH] = {0x20, 0x53, 0xdf, 0xfb, 0xd5, 0x1e, 0x43, 0x10, 0xb9, 0x3b, 0x95, 0x6d, 0xa8, 0x9f, 0x9f, 0x34};
 
-    crypto_generichash_update(&hash_state, fwup_uuid, sizeof(fwup_uuid));
-    crypto_generichash_update(&hash_state, (const unsigned char *) data, (unsigned long long) data_size);
+    crypto_blake2b_update(&hash_state, fwup_uuid, sizeof(fwup_uuid));
+    crypto_blake2b_update(&hash_state, (const unsigned char *) data, (unsigned long long) data_size);
 
-    unsigned char hash[crypto_generichash_BYTES];
-    crypto_generichash_final(&hash_state, hash, sizeof(hash));
+    unsigned char hash[64];
+    crypto_blake2b_final(&hash_state, hash);
 
     // Set version number (RFC 4122) to 5. This really isn't right since we're
     // not using SHA-1, but libsodium doesn't include SHA-1.
